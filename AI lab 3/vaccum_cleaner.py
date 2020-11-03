@@ -32,6 +32,7 @@ for i in range(n):
                 print("*" * 20)
             else:
                 print("Sense - Clean")
+                print(ar,i,j)
                 print("*" * 20)
 
     else:
@@ -44,6 +45,7 @@ for i in range(n):
                 print("*" * 20)
             else:
                 print("Sense - Clean")
+                print(ar,i,j)
                 print("*" * 20)
 
     print("Move - Down")
