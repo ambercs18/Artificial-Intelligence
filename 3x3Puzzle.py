@@ -1,182 +1,251 @@
-import random
 
-goal_state = [[1, 2, 3],
-              [4, 5, 6],
-              [7, 8, 0]]
-
-
-def index(item, sequence):
-    if item in sequence:
-        return sequence.index(item)
-    else:
-        return -1
+class Node:
+    def __init__(self, state, action, depth):
+        self.state = state
+        self.action = action
+        self.depth = depth
 
 
-def heuristic(puzzle, item_total_calc, total_calc):
-    t = 0
-    for row in range(3):
-        for col in range(3):
-            val = puzzle.peek(row, col) - 1
-            target_col = val % 3
-            target_row = val / 3
+class Position:
+    def __init__(self, i, j):
+        self.j = j
+        self.i = i
 
-            if target_row < 0:
-                target_row = 2
-            t += item_total_calc(row, target_row, col, target_col)
-    return total_calc(t)
+found = False
+selected_depth = 0
+Max_Depth = 50
+puzzle_size = 3
+print("Enter goal state")
+GoalState=[]
+for i in range(3):
+    a=[]
+    for j in range(3):
+        a.append(int(input()))
+    GoalState.append(a)
 
+print("Enter present state")
+StartState=[]
+for i in range(3):
+    a=[]
+    for j in range(3):
+        a.append(int(input()))
+    StartState.append(a)
+    # StartState.append(map(int,input().split()))
 
-def manhattan(puzzle):
-    return heuristic(puzzle,
-                     lambda r, tr, c, tc: abs(tr - r) + abs(tc - c),
-                     lambda t: t)
+print(GoalState)
+# GoalState = [
+#     [1, 2, 3],
+#     [4, 5, 6],
+#     [7, 8, 0]
+# ]
+#
+# StartState = [
+#     [4, 1, 2],
+#     [0, 6, 3],
+#     [7, 5, 8]
+# ]
 
-
-class SlidePuzzle:
-    def __init__(self):
-        self.heurisitcvalue = 0
-        self.depth = 0
-        self.parent = None
-        self.adj_matrix = []
-        for i in range(3):
-            self.adj_matrix.append(goal_state[i][:])
-
-    def __eq__(self, other):
-        if self.__class__ != other.__class__:
-            return False
-        else:
-            return self.adj_matrix == other.adj_matrix
-
-    def __str__(self):
-        res = ''
-        for row in range(3):
-            res += ' '.join(map(str, self.adj_matrix[row]))
-            res += '\r\n'
-        return res
-
-    def clone(self):
-        a = SlidePuzzle()
-        for i in range(3):
-            a.adj_matrix[i] = self.adj_matrix[i][:]
-        return a
-
-    def get_legal_moves(self):
-        row, col = self.find(0)
-        free = []
-
-        if row > 0:
-            free.append((row - 1, col))
-        if col > 0:
-            free.append((row, col - 1))
-        if row < 2:
-            free.append((row + 1, col))
-        if col < 2:
-            free.append((row, col + 1))
-        return free
-
-    def generate_moves(self):
-        free = self.get_legal_moves()
-        zero = self.find(0)
-
-        def swap_and_clone(first, second):
-            p = self.clone()
-            p.swap(first, second)
-            p.depth = self.depth + 1
-            p.parent = self
-            return p
-
-        return map(lambda pair: swap_and_clone(zero, pair), free)
-
-    def generate_solution_path(self, path):
-        if self.parent == None:
-            return path
-        else:
-            path.append(self)
-            return self.parent.generate_solution_path(path)
-
-    def solve(self, h):
-        def is_solved(puzzle):
-            return puzzle.adj_matrix == goal_state
-
-        openlist = [self]
-        closedlist = []
-        move_count = 0
-        while len(openlist) > 0:
-            x = openlist.pop(0)
-            move_count += 1
-            if (is_solved(x)):
-                if len(closedlist) > 0:
-                    return x.generate_solution_path([]), move_count
-                else:
-                    return [x]
-
-            successors = x.generate_moves()
-            index_open = index_closed = -1
-            for move in successors:
-                index_open = index(move, openlist)
-                index_closed = index(move, closedlist)
-                heurisitcvalue = h(move)
-                fval = heurisitcvalue + move.depth
-                if index_closed == -1 and index_open == -1:
-                    move.heurisitcvalue = heurisitcvalue
-                    openlist.append(move)
-                elif index_open > -1:
-                    copy = openlist[index_open]
-                    if fval < copy.heurisitcvalue + copy.depth:
-                        copy.heurisitcvalue = heurisitcvalue
-                        copy.parent = move.parent
-                        copy.depth = move.depth
-                elif index_closed > -1:
-                    copy = closedlist[index_closed]
-                    if fval < copy.heurisitcvalue + copy.depth:
-                        move.heurisitcvalue = heurisitcvalue
-                        closedlist.remove(copy)
-                        openlist.append(move)
-            closedlist.append(x)
-            openlist = sorted(openlist, key=lambda p: p.heurisitcvalue + p.depth)
-        return [], 0
-
-    def shuffle(self, step_count):
-
-        for i in range(step_count):
-            row, col = self.find(0)
-            free = self.get_legal_moves()
-            target = random.choice(free)
-            self.swap((row, col), target)
-            row, col = target
-
-    def find(self, value):
-        if value < 0 or value > 8:
-            raise Exception("Number out of range")
-
-        for row in range(3):
-            for col in range(3):
-                if self.adj_matrix[row][col] == value:
-                    return row, col
-
-    def peek(self, row, col):
-        return self.adj_matrix[row][col]
-
-    def poke(self, row, col, value):
-        self.adj_matrix[row][col] = value
-
-    def swap(self, pos_first, pos_second):
-        temp = self.peek(*pos_first)
-        self.poke(pos_first[0], pos_first[1], self.peek(*pos_second))
-        self.poke(pos_second[0], pos_second[1], temp)
+# for j in range(puzzle_size):
+#    row = input().split()
+#    for i in range(puzzle_size):
+#        StartState[j][i] = int(row[i])
 
 
-def main():
-    p = SlidePuzzle()
-    p.shuffle(20)
-    print(p)
-
-    path, count = p.solve(manhattan)
-    path.reverse()
-    for i in path:
-        print(i)
-    print("Solved, exploring", count, "states")
+def print_state(state):
+    result = ""
+    for j in range(puzzle_size):
+        for i in range(puzzle_size):
+            result += str(state[j][i])
+        result += "\n"
+    print(result)
 
 
-if __name__ == "__main__":
-    main()
+def copy_array(state):
+    st = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    for j in range(puzzle_size):
+        for i in range(puzzle_size):
+            st[j][i] = state[j][i]
+    return st
+
+
+def zero_position(state):
+    for i in range(puzzle_size):
+        for j in range(puzzle_size):
+            if state[j][i] == 0:
+                return Position(i, j)
+    return None
+
+
+def can_right(position):
+    if position.i == puzzle_size - 1:
+        return False
+    return True
+
+
+def can_left(position):
+    if position.i == 0:
+        return False
+    return True
+
+
+def can_up(position):
+    if position.j == 0:
+        return False
+    return True
+
+
+def can_down(position):
+    if position.j == puzzle_size - 1:
+        return False
+    return True
+
+
+def right(state):
+    st = copy_array(state)
+    zero_pos = zero_position(state)
+    if can_right(zero_pos):
+        st[zero_pos.j][zero_pos.i + 1], st[zero_pos.j][zero_pos.i] = state[zero_pos.j][zero_pos.i], state[zero_pos.j][zero_pos.i + 1]
+        return st
+    return st
+
+
+def left(state):
+    st = copy_array(state)
+    zero_pos = zero_position(state)
+    if can_left(zero_pos):
+        st[zero_pos.j][zero_pos.i - 1], st[zero_pos.j][zero_pos.i] = state[zero_pos.j][zero_pos.i], state[zero_pos.j][zero_pos.i - 1]
+        return st
+    return st
+
+
+def up(state):
+    st = copy_array(state)
+    zero_pos = zero_position(state)
+    if can_up(zero_pos):
+        st[zero_pos.j - 1][zero_pos.i], st[zero_pos.j][zero_pos.i] = state[zero_pos.j][zero_pos.i], state[zero_pos.j - 1][zero_pos.i]
+        return st
+    return st
+
+
+def down(state):
+    st = copy_array(state)
+    zero_pos = zero_position(state)
+    if can_down(zero_pos):
+        st[zero_pos.j + 1][zero_pos.i], st[zero_pos.j][zero_pos.i] = state[zero_pos.j][zero_pos.i], state[zero_pos.j + 1][zero_pos.i]
+        return st
+    return st
+
+
+def checked(state):
+    for node in frontHere:
+        if node.state == state:
+            return True
+    return False
+
+
+def get_action(state):
+    for node in checked_states:
+        if node.state == state:
+            return node.action
+    return None
+
+
+def h(state):
+    match = 0
+    for j in range(puzzle_size):
+        for i in range(puzzle_size):
+            if state[j][i] == GoalState[j][i]:
+                match += 1
+    return 9 - match
+
+
+def print_path():
+    state = copy_array(GoalState)
+    while state != StartState:
+        action = get_action(state)
+
+        if action == "right":
+            actions.append("right")
+            state = left(state)
+
+        elif action == "left":
+            actions.append("left")
+            state = right(state)
+
+        elif action == "up":
+            actions.append("up")
+            state = down(state)
+
+        elif action == "down":
+            actions.append("down")
+            state = up(state)
+
+    actions.reverse()
+
+    print(len(actions), "Steps:\n")
+    print_state(StartState)
+
+    for action in actions:
+        if action == "right":
+            state = right(state)
+
+        elif action == "left":
+            state = left(state)
+
+        elif action == "up":
+            state = up(state)
+
+        elif action == "down":
+            state = down(state)
+        print_state(state)
+
+
+def get_state():
+    selected_node = Node(None, None, None)
+    index = 0
+    selected_index = 0
+    min_f = Max_Depth + 9
+    for i in range(0, len(frontHere)):
+        node = frontHere[i]
+        if node.depth + h(node.state) < min_f:
+            min_f = node.depth + h(node.state)
+            selected_node.state = node.state
+            selected_node.depth = node.depth
+            selected_node.action = node.action
+            selected_index = index
+    frontHere.remove(frontHere[selected_index])
+    return selected_node
+
+
+frontHere = [Node(StartState, None, 0)]
+checked_states = []
+actions = []
+
+while len(frontHere) != 0 and not found and selected_depth <= Max_Depth:
+    best_result = get_state()
+    left_state = left(best_result.state)
+    right_state = right(best_result.state)
+    up_state = up(best_result.state)
+    down_state = down(best_result.state)
+
+    if best_result.state == GoalState:
+        found = True
+    if not checked(right(best_result.state)):
+        frontHere.append(Node(right(best_result.state), "right", selected_depth + 1))
+
+    if not checked(left(best_result.state)):
+        frontHere.append(Node(left(best_result.state), "left", selected_depth + 1))
+
+    if not checked(up(best_result.state)):
+        frontHere.append(Node(up(best_result.state), "up", selected_depth + 1))
+
+    if not checked(down(best_result.state)):
+        frontHere.append(Node(down(best_result.state), "down", selected_depth + 1))
+
+    selected_depth = best_result.depth
+    checked_states.append(best_result)
+
+if found:
+    print_path()
+else:
+    print("Can't Solve!")
